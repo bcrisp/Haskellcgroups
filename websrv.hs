@@ -1,3 +1,5 @@
+-- 2014 Brandon Crisp
+
 {-# LANGUAGE OverloadedStrings #-}
 
 import Web.Scotty
@@ -12,14 +14,19 @@ import Data.Monoid (mconcat)
 
 subsystems = ["blkio", "cpu", "cpuacct", "cpuset", "devices", "freezer", "memory", "net_cls", "net_prio", "ns"]
 
+cgroupDirectory :: String
+cgroupDirectory = "/sys/fs/cgroup/"
+
 isContained :: Eq a => [a] -> [a] -> [a]
 isContained list sublist = filter ( `notElem` list ) sublist
 
 main = scotty 3000 $ do
 	get "/:cgroup" $ do -- list pids
-		--beam <- param "word"
-		res <- liftIO $ readProcess "cgcreate" [] [] --createProcess $ (proc "cgcreate"[] )
-		json $ mconcat ["<h1>Scotty, ", B.pack(res), " me up!</h1>"]
+		cgroup <- param "cgroup"
+		let path = cgroupDirectory ++ cgroup ++ "/tasks"
+		response <- liftIO $ readFile path
+		let pids = lines response
+		json $ pids
 	put "/cgroup/:name/:groups/:pid" $ do -- place process into cgroup
 		name <- param "name"
 		g <- param "groups"
