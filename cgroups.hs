@@ -24,8 +24,8 @@ app req respond = do
 	let l = (BS.unpack . rawPathInfo) req 
 	let m = (BS.unpack . requestMethod) req
 	liftIO $ putStrLn l
-	liftIO $ putStrLn $ case m of
-		"GET" -> "User requested with GET" $ do 
+	liftIO $ case m of
+		"GET" -> do 
 			lines <- liftIO $ readFile $ mconcat [cgroupDirectory, l, "/tasks"]
 			let splitLines = splitOn "\n" lines
 			liftIO $ print splitLines
@@ -35,9 +35,6 @@ main = do
 	let port = 3000
 	putStrLn $ "Listening on " ++ show port
 	run port app
-
-
---begin port a = run port a
 
 
 index x = responseLBS status200 [(hContentType, "application/json")] (encode x) 
