@@ -34,7 +34,8 @@ app req respond = do
 		        let split = splitOn "/" l
                         let cgroup = split !! 1
 			let pid = split !! 2
-                        respond $ index $ cgroup ++ ":" ++ pid
+			response <- liftIO $ readProcess "cgclassify" ["-g " ++ cgroup ++ " " ++ pid] []
+                        respond $ index $ cgroup ++ ":" ++ response
 		"POST" -> do
 			putStrLn "something POSTed"
 			let s = "hi" :: String
