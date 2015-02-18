@@ -30,6 +30,15 @@ app req respond = do
 			let splitLines = splitOn "\n" lines
 			liftIO $ print splitLines
 			respond $ index splitLines
+		"PUT"  -> do
+		        let split = splitOn "/" l
+                        let cgroup = split !! 1
+			let pid = split !! 2
+                        respond $ index $ cgroup ++ ":" ++ pid
+		"POST" -> do
+			putStrLn "something POSTed"
+			let s = "hi" :: String
+			respond $ index s
 
 main = do
 	let port = 3000
