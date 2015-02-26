@@ -7,6 +7,7 @@ import Control.Monad.IO.Class
 import qualified Data.ByteString.Char8 as BS
 import Control.Monad
 import Control.Monad.Reader (lift)
+import Data.List
 import Data.List.Split as L
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -33,6 +34,7 @@ app req respond = do
 		"PUT"  -> do
 		        let split = splitOn "/" l
                         let cgroup = split !! 1
+	                let b = liftM (isInfixOf cgroup) $ readProcess "lscgroup" [] []
 			let pid = split !! 2
 			response <- liftIO $ readProcess "cgclassify" ["-g " ++ cgroup ++ " " ++ pid] []
                         respond $ index $ cgroup ++ ":" ++ response
