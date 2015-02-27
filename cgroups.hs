@@ -33,13 +33,19 @@ app req respond = do
 			respond $ index splitLines
 		"PUT"  -> do
 		        let split = splitOn "/" l
-                        let cgroup = split !! 1
-	                let b = liftM (isInfixOf cgroup) $ readProcess "lscgroup" [] []
-			let pid = split !! 2
-			response <- liftIO $ readProcess "cgclassify" ["-g " ++ cgroup ++ " " ++ pid] []
+                        let controller = split !! 1--  (intercalate "/" . init) split
+	                --let b = liftM (isInfixOf cgroup) $ readProcess "lscgroup" [] []
+			let cgroup = split !! 2
+			let pid = last split
+			liftIO $ print $ "-g " ++ controller ++ ":" ++ cgroup ++ " " ++ pid
+			response <- liftIO $ readProcess "cgclassify" ["-g " ++ controller ++ ":" ++ cgroup ++ " " ++ pid] []
                         respond $ index $ cgroup ++ ":" ++ response
 		"POST" -> do
-			putStrLn "something POSTed"
+			let split = splitOn "/" l
+			let controller = split !! 1
+			let cgroup = split !! 2	
+			response <- liftIO $ readProcess "cgcreate" ["-g", controller ++ ":" ++ cgroup] [] -- # cgcreate -g cpu:group1
+			putStrLn $ "Creating cgroup with controller " ++ controller ++ " and cgroup name " ++ cgroup
 			let s = "hi" :: String
 			respond $ index s
 
