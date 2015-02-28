@@ -1,14 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Network.Wai
 import Data.Aeson
 import System.Process
 import Control.Monad.IO.Class
 import qualified Data.ByteString.Char8 as BS
 import Control.Monad
-import Control.Monad.Reader (lift)
-import Data.List
-import Data.List.Split as L
+import Data.List.Split
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.HTTP.Types (status200)
@@ -37,14 +34,13 @@ app req respond = do
 	                --let b = liftM (isInfixOf cgroup) $ readProcess "lscgroup" [] []
 			let cgroup = split !! 2
 			let pid = last split
-			liftIO $ print $ "-g " ++ controller ++ ":" ++ cgroup ++ " " ++ pid
 			response <- liftIO $ readProcess "cgclassify" ["-g",  controller ++ ":" ++ cgroup, pid] []
                         respond $ index $ response
 		"POST" -> do
 			let split = splitOn "/" l
 			let controller = split !! 1
 			let cgroup = split !! 2	
-			response <- liftIO $ readProcess "cgcreate" ["-g", controller ++ ":" ++ cgroup] [] -- # cgcreate -g cpu:group1
+			response <- liftIO $ readProcess "cgcreate" ["-g", controller ++ ":" ++ cgroup] []
 			putStrLn $ "Creating cgroup with controller " ++ controller ++ " and cgroup name " ++ cgroup
 			let s = "hi" :: String
 			respond $ index s
