@@ -38,8 +38,8 @@ app req respond = do
 			let cgroup = split !! 2
 			let pid = last split
 			liftIO $ print $ "-g " ++ controller ++ ":" ++ cgroup ++ " " ++ pid
-			response <- liftIO $ readProcess "cgclassify" ["-g " ++ controller ++ ":" ++ cgroup ++ " " ++ pid] []
-                        respond $ index $ cgroup ++ ":" ++ response
+			response <- liftIO $ readProcess "cgclassify" ["-g",  controller ++ ":" ++ cgroup, pid] []
+                        respond $ index $ response
 		"POST" -> do
 			let split = splitOn "/" l
 			let controller = split !! 1
