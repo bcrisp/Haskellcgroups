@@ -18,32 +18,37 @@ cgroupDirectory = "/sys/fs/cgroup"
 
 subsystems = ["blkio", "cpu", "cpuacct", "cpuset", "devices", "freezer", "memory", "net_cls", "net_prio", "ns"]
 
+get pathInfo respond = do 
+       lines <- liftIO $ readFile $ mconcat [cgroupDirectory, pathInfo, "/tasks"]
+       let splitLines = splitOn "\n" lines
+       liftIO $ print splitLines
+       respond $ index splitLines
+
+put pathInfo respond = do
+       let split = splitOn "/" pathInfo
+       let controller = split !! 1
+       let cgroup = split !! 2
+       let pid = last split
+       response <- liftIO $ readProcess "cgclassify" ["-g",  controller ++ ":" ++ cgroup, pid] []
+       respond $ index $ response
+
+post pathInfo respond = do
+       let split = splitOn "/" pathInfo
+       let controller = split !! 1
+       let cgroup = split !! 2
+       response <- liftIO $ readProcess "cgcreate" ["-g", controller ++ ":" ++ cgroup] []
+       putStrLn $ "Creating cgroup with controller " ++ controller ++ " and cgroup name " ++ cgroup
+       let s = "hi" :: String
+       respond $ index s
+
 app req respond = do
-	let l = (BS.unpack . rawPathInfo) req 
+	let requestPath = (BS.unpack . rawPathInfo) req 
 	let m = (BS.unpack . requestMethod) req
-	liftIO $ putStrLn l
+	liftIO $ putStrLn requestPath
 	liftIO $ case m of
-		"GET" -> do 
-			lines <- liftIO $ readFile $ mconcat [cgroupDirectory, l, "/tasks"]
-			let splitLines = splitOn "\n" lines
-			liftIO $ print splitLines
-			respond $ index splitLines
-		"PUT"  -> do
-		        let split = splitOn "/" l
-                        let controller = split !! 1--  (intercalate "/" . init) split
-	                --let b = liftM (isInfixOf cgroup) $ readProcess "lscgroup" [] []
-			let cgroup = split !! 2
-			let pid = last split
-			response <- liftIO $ readProcess "cgclassify" ["-g",  controller ++ ":" ++ cgroup, pid] []
-                        respond $ index $ response
-		"POST" -> do
-			let split = splitOn "/" l
-			let controller = split !! 1
-			let cgroup = split !! 2	
-			response <- liftIO $ readProcess "cgcreate" ["-g", controller ++ ":" ++ cgroup] []
-			putStrLn $ "Creating cgroup with controller " ++ controller ++ " and cgroup name " ++ cgroup
-			let s = "hi" :: String
-			respond $ index s
+		"GET" -> get requestPath respond
+		"PUT"  -> put requestPath respond 
+		"POST" -> post requestPath respond
 
 main = do
 	let port = 3000
