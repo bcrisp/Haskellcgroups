@@ -12,13 +12,14 @@ import Network.Wai.Handler.Warp
 import Network.HTTP.Types (status200)
 import Network.HTTP.Types.Header (hContentType)
 import Data.Monoid
+import Control.Applicative
+import Control.Error.Util
+import Data.Traversable
 
 cgroupDirectory :: String
 cgroupDirectory = "/sys/fs/cgroup"
 
 subsystems = ["blkio", "cpu", "cpuacct", "cpuset", "devices", "freezer", "memory", "net_cls", "net_prio", "ns"]
-
-
 
 get pathInfo respond = do 
        lines <- liftIO $ readFile $ mconcat [cgroupDirectory, pathInfo, "/tasks"]
@@ -26,29 +27,18 @@ get pathInfo respond = do
        liftIO $ print splitLines
        respond $ htmlResponse splitLines
 
---getElementAt :: a -> b -> MaybeT IO String
---getElementAt pathList index :: splitOn "/" pathList
 classify :: String -> String -> String -> IO String
 classify a b c = readProcess "cgclassify" ["-g", a  <> ":" <> b, c] []
 
-extract :: String -> IO String
+extract :: String -> Either String (IO String)
 extract pathInfo = do
        let pathList = splitOn "/" pathInfo
-       let maybeController = pathList ^? element 1
-       let cgroup = pathList ^? element 2
-       let pid = pathList ^? element 3
-       case maybeController of
-         Just a -> case cgroup of
-           Just b -> case pid of
-             Just c -> (classify a b c)
-             Nothing -> return "No Process ID"
-           Nothing -> return "No cgroup"
-         Nothing -> return "No controller"
+       let maybeController = note "Can't find controller" (pathList ^? element 1)
+       let cgroup = note "Can't find cgroup" (pathList ^? element 2)
+       let pid = note "Can't find pid" (pathList ^? element 3)
+       classify <$> maybeController <*> cgroup <*> pid
 
-
-put pathInfo respond = do
-	result <- liftIO $ extract pathInfo
-        respond ( htmlResponse result)
+put pathInfo respond = (sequenceA $ extract pathInfo) >>= respond . htmlResponse
 
 post pathInfo respond = do
        let split = splitOn "/" pathInfo
