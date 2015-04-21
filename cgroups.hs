@@ -30,6 +30,9 @@ get pathInfo respond = do
 classify :: String -> String -> String -> IO String
 classify a b c = readProcess "cgclassify" ["-g", a  <> ":" <> b, c] []
 
+runP :: String -> String -> IO String
+runP controller cgroup = readProcess "cgcreate" ["-g", controller <> ":" <> cgroup] []
+
 extract :: String -> Either String (IO String)
 extract pathInfo = do
        let pathList = splitOn "/" pathInfo
@@ -41,13 +44,10 @@ extract pathInfo = do
 put pathInfo respond = (sequenceA $ extract pathInfo) >>= respond . htmlResponse
 
 post pathInfo respond = do
-       let split = splitOn "/" pathInfo
-       let controller = split !! 1
-       let cgroup = split !! 2
-       response <- liftIO $ readProcess "cgcreate" ["-g", controller <> ":" <> cgroup] []
-       putStrLn $ "Creating cgroup with controller " <> controller <> " and cgroup name " <> cgroup
-       let s = "hi" :: String
-       respond $ htmlResponse s
+       let pathList = splitOn "/" pathInfo
+       let maybeController = note "Can't find controller" (pathList ^? element 1) :: Either String String
+       let cgroup = note "Can't find cgroup" (pathList ^? element 2)
+       (respond . htmlResponse) =<< (sequenceA (runP <$> maybeController <*> cgroup))
 
 app req respond = do
 	let requestPath = (BS.unpack . rawPathInfo) req 
