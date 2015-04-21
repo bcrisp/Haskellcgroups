@@ -33,21 +33,21 @@ classify a b c = readProcess "cgclassify" ["-g", a  <> ":" <> b, c] []
 runP :: String -> String -> IO String
 runP controller cgroup = readProcess "cgcreate" ["-g", controller <> ":" <> cgroup] []
 
-extract :: String -> Either String (IO String)
-extract pathInfo = do
+--extract :: String -> Either String (IO String)
+put pathInfo respond = do
        let pathList = splitOn "/" pathInfo
-       let maybeController = note "Can't find controller" (pathList ^? element 1)
+       let maybeController = note "Can't find controller" (pathList ^? element 1) :: Either String String
        let cgroup = note "Can't find cgroup" (pathList ^? element 2)
        let pid = note "Can't find pid" (pathList ^? element 3)
-       classify <$> maybeController <*> cgroup <*> pid
+       (sequenceA $ classify <$> maybeController <*> cgroup <*> pid) >>= (respond. htmlResponse)
 
-put pathInfo respond = (sequenceA $ extract pathInfo) >>= respond . htmlResponse
+--put pathInfo respond = (sequenceA $ extract pathInfo) >>= respond . htmlResponse
 
 post pathInfo respond = do
        let pathList = splitOn "/" pathInfo
        let maybeController = note "Can't find controller" (pathList ^? element 1) :: Either String String
        let cgroup = note "Can't find cgroup" (pathList ^? element 2)
-       (respond . htmlResponse) =<< (sequenceA (runP <$> maybeController <*> cgroup))
+       (sequenceA (runP <$> maybeController <*> cgroup)) >>= (respond . htmlResponse)
 
 app req respond = do
 	let requestPath = (BS.unpack . rawPathInfo) req 
