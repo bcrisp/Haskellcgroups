@@ -16,19 +16,13 @@ import Control.Applicative
 import Control.Error.Util
 import Data.Traversable
 
-cgroupDirectory :: String
 cgroupDirectory = "/sys/fs/cgroup"
 
 subsystems = ["blkio", "cpu", "cpuacct", "cpuset", "devices", "freezer", "memory", "net_cls", "net_prio", "ns"]
 
-get pathInfo respond = do 
-       lines <- liftIO $ readFile $ mconcat [cgroupDirectory, pathInfo, "/tasks"]
-       let splitLines = splitOn "\n" lines
-       liftIO $ print splitLines
-       respond $ htmlResponse splitLines
-
-classify :: String -> String -> String -> String -> IO String
 classify p a b c = readProcess p ["-g", a  <> ":" <> b, c] []
+
+get pathInfo respond = (fmap (splitOn "\n") (readFile $ mconcat [cgroupDirectory, pathInfo, "/tasks"])) >>= (respond . htmlResponse)
 
 put pathInfo respond = do
        let pathList = splitOn "/" pathInfo
@@ -56,6 +50,5 @@ main = do
 	let port = 3000
 	putStrLn $ "Listening on " <> show port
 	run port app
-
 
 htmlResponse x = responseLBS status200 [(hContentType, "application/json")] (encode x) 
